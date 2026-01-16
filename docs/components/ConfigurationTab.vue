@@ -1,0 +1,1545 @@
+<template>
+    <div class="tab-configuration">
+        <div class="content_wrapper">
+            <div class="tab_title">{{ $t("tabConfiguration") }}</div>
+            <WikiButton docUrl="configuration" />
+            <div class="note">
+                <p v-html="$t('configurationFeaturesHelp')"></p>
+            </div>
+
+            <div class="grid-row grid-box col2">
+                <div class="col-span-1">
+                    <!-- SYSTEM CONFIGURATION -->
+                    <div class="systemconfig">
+                        <div class="gui_box grey">
+                            <div class="gui_box_titlebar">
+                                <div class="spacer_box_title">{{ $t("configurationSystem") }}</div>
+                            </div>
+                            <div class="spacer_box">
+                                <div class="note">
+                                    <p class="systemconfigNote" v-html="$t('configurationLoopTimeHelp')"></p>
+                                </div>
+                                <div class="select">
+                                    <input type="text" class="gyroFrequency" readonly :value="gyroFrequencyDisplay" />
+
+                                    <span>{{ $t("configurationGyroFrequency") }}</span>
+                                </div>
+                                <div class="select">
+                                    <select
+                                        class="pidProcessDenom"
+                                        v-model.number="pidAdvancedConfig.pid_process_denom"
+                                    >
+                                        <option v-for="opt in pidDenomOptions" :key="opt.value" :value="opt.value">
+                                            {{ opt.text }}
+                                        </option>
+                                    </select>
+                                    <span>{{ $t("configurationPidProcessDenom") }}</span>
+                                    <div class="helpicon cf_tip" :title="$t('configurationPidProcessDenomHelp')"></div>
+                                </div>
+                                <div class="select">
+                                    <div>
+                                        <input
+                                            type="checkbox"
+                                            id="accHardwareSwitch"
+                                            class="toggle"
+                                            v-model="accHardwareEnabled"
+                                            :aria-label="$t('configurationAccHardware')"
+                                        />
+                                    </div>
+                                    <span class="freelabel">{{ $t("configurationAccHardware") }}</span>
+                                </div>
+                                <div class="select">
+                                    <div>
+                                        <input
+                                            type="checkbox"
+                                            id="baroHardwareSwitch"
+                                            class="toggle"
+                                            v-model="baroHardwareEnabled"
+                                            :aria-label="$t('configurationBaroHardware')"
+                                        />
+                                    </div>
+                                    <span class="freelabel">{{ $t("configurationBaroHardware") }}</span>
+                                </div>
+                                <div class="select">
+                                    <div>
+                                        <input
+                                            type="checkbox"
+                                            id="magHardwareSwitch"
+                                            class="toggle"
+                                            v-model="magHardwareEnabled"
+                                            :aria-label="$t('configurationMagHardware')"
+                                        />
+                                    </div>
+                                    <span class="freelabel">{{ $t("configurationMagHardware") }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- PERSONALIZATION -->
+                    <div class="gui_box grey miscSettings">
+                        <div class="gui_box_titlebar">
+                            <div class="spacer_box_title">{{ $t("configurationPersonalization") }}</div>
+                        </div>
+                        <div class="spacer_box">
+                            <div class="number">
+                                <label>
+                                    <input
+                                        type="text"
+                                        v-model="craftName"
+                                        maxlength="16"
+                                        style="width: 100px"
+                                        :aria-label="$t('craftName')"
+                                    />
+                                    <span>{{ $t("craftName") }}</span>
+                                </label>
+                                <div class="helpicon cf_tip" :title="$t('configurationCraftNameHelp')"></div>
+                            </div>
+                            <div class="number pilotName" v-if="showPilotName">
+                                <label>
+                                    <input
+                                        type="text"
+                                        v-model="pilotName"
+                                        maxlength="16"
+                                        style="width: 100px"
+                                        :aria-label="$t('configurationPilotName')"
+                                    />
+                                    <span>{{ $t("configurationPilotName") }}</span>
+                                </label>
+                                <div class="helpicon cf_tip" :title="$t('configurationPilotNameHelp')"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- CAMERA -->
+                    <div class="gui_box grey miscSettings" v-if="accHardwareEnabled">
+                        <div class="gui_box_titlebar">
+                            <div class="spacer_box_title">{{ $t("configurationCamera") }}</div>
+                        </div>
+                        <div class="spacer_box">
+                            <div class="number fpvCamAngleDegrees">
+                                <label>
+                                    <input
+                                        type="number"
+                                        name="fpvCamAngleDegrees"
+                                        v-model.number="fpvCamAngleDegrees"
+                                        step="1"
+                                        min="0"
+                                        max="90"
+                                    />
+                                    <span>{{ $t("configurationFpvCamAngleDegrees") }}</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ARMING -->
+                    <div class="gui_box grey arming" v-if="accHardwareEnabled">
+                        <div class="gui_box_titlebar">
+                            <div class="spacer_box_title">{{ $t("configurationArming") }}</div>
+                            <div class="helpicon cf_tip" :title="$t('configurationArmingHelp')"></div>
+                        </div>
+                        <div class="spacer_box">
+                            <div class="number">
+                                <label>
+                                    <input
+                                        type="number"
+                                        name="small_angle"
+                                        v-model.number="armingConfig.small_angle"
+                                        min="0"
+                                        max="180"
+                                    />
+                                    <span>{{ $t("configurationSmallAngle") }}</span>
+                                </label>
+                                <div class="helpicon cf_tip" :title="$t('configurationSmallAngleHelp')"></div>
+                            </div>
+
+                            <div class="select" v-if="showGyroCalOnFirstArm">
+                                <div>
+                                    <input
+                                        type="checkbox"
+                                        class="toggle"
+                                        id="gyroCalOnFirstArm"
+                                        v-model="armingConfig.gyro_cal_on_first_arm_bool"
+                                    />
+                                </div>
+                                <span class="freelabel">{{ $t("configurationGyroCalOnFirstArm") }}</span>
+                                <div class="helpicon cf_tip" :title="$t('configurationGyroCalOnFirstArmHelp')"></div>
+                            </div>
+
+                            <div class="number" v-if="showAutoDisarmDelay">
+                                <label>
+                                    <input
+                                        type="number"
+                                        name="auto_disarm_delay"
+                                        v-model.number="armingConfig.auto_disarm_delay"
+                                        min="0"
+                                        max="60"
+                                    />
+                                    <span>{{ $t("configurationAutoDisarmDelay") }}</span>
+                                </label>
+                                <div class="helpicon cf_tip" :title="$t('configurationAutoDisarmDelayHelp')"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- FEATURES -->
+                    <div class="gui_box grey features">
+                        <div class="gui_box_titlebar">
+                            <div class="spacer_box_title">{{ $t("configurationFeatures") }}</div>
+                        </div>
+                        <div class="spacer_box">
+                            <table class="features-table">
+                                <thead class="visually-hidden">
+                                    <tr>
+                                        <th scope="col">{{ $t("configurationFeatureEnabled") }}</th>
+                                        <th scope="col">{{ $t("configurationFeatureName") }}</th>
+                                        <th scope="col">{{ $t("configurationFeatureDescription") }}</th>
+                                        <th scope="col">{{ $t("configurationFeatureHelp") }}</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr v-for="feature in featuresList" :key="feature.bit">
+                                        <td>
+                                            <input
+                                                type="checkbox"
+                                                class="feature toggle"
+                                                :id="'feature' + feature.bit"
+                                                :name="feature.name"
+                                                :checked="isFeatureEnabled(feature)"
+                                                @change="toggleFeature(feature, $event.target.checked)"
+                                            />
+                                        </td>
+                                        <td>
+                                            <div>{{ feature.name }}</div>
+                                        </td>
+                                        <td>
+                                            <span class="xs" v-html="$t('feature' + feature.name)"></span>
+                                        </td>
+                                        <td>
+                                            <span class="sm-min" v-html="$t('feature' + feature.name)"></span>
+                                            <div
+                                                v-if="feature.haveTip"
+                                                class="helpicon cf_tip"
+                                                :title="$t('feature' + feature.name + 'Tip')"
+                                            ></div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-span-1">
+                    <!-- BOARD ALIGNMENT -->
+                    <div class="board acc">
+                        <div class="gui_box grey">
+                            <div class="gui_box_titlebar">
+                                <div class="spacer_box_title">{{ $t("configurationBoardAlignment") }}</div>
+                                <div class="helpicon cf_tip" :title="$t('configurationBoardAlignmentHelp')"></div>
+                            </div>
+                            <div class="spacer_box">
+                                <div class="sensor_align_content">
+                                    <div class="sensor_align_inputs">
+                                        <div class="alignicon roll"></div>
+                                        <label>
+                                            <input
+                                                type="number"
+                                                v-model.number="boardAlignment.roll"
+                                                step="1"
+                                                min="-180"
+                                                max="360"
+                                                :aria-label="$t('configurationBoardAlignmentRoll')"
+                                            />
+                                            <span>{{ $t("configurationBoardAlignmentRoll") }}</span>
+                                        </label>
+                                    </div>
+                                    <div class="sensor_align_inputs">
+                                        <div class="alignicon pitch"></div>
+                                        <label>
+                                            <input
+                                                type="number"
+                                                v-model.number="boardAlignment.pitch"
+                                                step="1"
+                                                min="-180"
+                                                max="360"
+                                                :aria-label="$t('configurationBoardAlignmentPitch')"
+                                            />
+                                            <span>{{ $t("configurationBoardAlignmentPitch") }}</span>
+                                        </label>
+                                    </div>
+                                    <div class="sensor_align_inputs">
+                                        <div class="alignicon yaw"></div>
+                                        <label>
+                                            <input
+                                                type="number"
+                                                v-model.number="boardAlignment.yaw"
+                                                step="1"
+                                                min="-180"
+                                                max="360"
+                                                :aria-label="$t('configurationBoardAlignmentYaw')"
+                                            />
+                                            <span>{{ $t("configurationBoardAlignmentYaw") }}</span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- NEW MULTI-GYRO ALIGNMENT (API 1.47+) -->
+                    <div class="gui_box grey" v-if="showMultiGyro">
+                        <div class="gui_box_titlebar">
+                            <div class="spacer_box_title">{{ $t("configurationGyroActiveIMU") }}</div>
+                            <div class="helpicon cf_tip" :title="$t('configurationGyroActiveIMUHelp')"></div>
+                        </div>
+                        <div class="spacer_box">
+                            <div
+                                v-for="gyro in gyroList"
+                                :key="gyro.index"
+                                class="gyro-row"
+                                style="margin-bottom: 10px; border-bottom: 1px solid #111; padding-bottom: 10px"
+                            >
+                                <div class="grid-row col2">
+                                    <div class="col-span-1">
+                                        <!-- Gyro Enable Toggle -->
+                                        <div class="select">
+                                            <div>
+                                                <input
+                                                    type="checkbox"
+                                                    class="toggle"
+                                                    :id="'gyro-enable-' + gyro.index"
+                                                    :checked="gyro.enabled"
+                                                    @change="toggleGyro(gyro.index, $event.target.checked)"
+                                                />
+                                            </div>
+                                            <span class="freelabel">{{ gyro.name }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="col-span-1">
+                                        <!-- Alignment configuration removed for API 1.47+ -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- GYRO ALIGNMENT (Legacy) -->
+                    <div class="gui_box grey" v-if="showSensorAlignment">
+                        <div class="gui_box_titlebar">
+                            <div class="spacer_box_title">{{ $t("configurationActiveImu") }}</div>
+                            <div class="helpicon cf_tip" :title="$t('configurationGyroAlignmentHelp')"></div>
+                        </div>
+                        <div class="spacer_box">
+                            <div class="grid-row col2">
+                                <div class="col-span-1">
+                                    <!-- GYRO ALIGNMENT -->
+                                    <div class="select" v-if="showGyroToUse">
+                                        <select v-model.number="sensorAlignment.gyro_to_use">
+                                            <option value="0">{{ $t("configurationSensorGyroToUseFirst") }}</option>
+                                            <option value="1" v-if="hasSecondGyro">
+                                                {{ $t("configurationSensorGyroToUseSecond") }}
+                                            </option>
+                                            <option value="2" v-if="hasDualGyros">
+                                                {{ $t("configurationSensorGyroToUseBoth") }}
+                                            </option>
+                                        </select>
+                                        <span>{{ $t("configurationSensorGyroToUse") }}</span>
+                                    </div>
+                                </div>
+                                <div class="col-span-1">
+                                    <div class="select" v-if="showGyro1Align">
+                                        <select v-model.number="sensorAlignment.gyro_1_align">
+                                            <option :value="0">
+                                                {{ $t("configurationSensorAlignmentDefaultOption") }}
+                                            </option>
+                                            <option
+                                                v-for="(align, idx) in sensorAlignments"
+                                                :key="idx"
+                                                :value="idx + 1"
+                                            >
+                                                {{ align }}
+                                            </option>
+                                        </select>
+                                        <span>{{ $t("configurationSensorAlignmentGyro1") }}</span>
+                                    </div>
+
+                                    <div class="sensor_align_content" v-if="sensorAlignment.gyro_1_align === 9">
+                                        <div class="sensor_align_inputs">
+                                            <div class="alignicon roll"></div>
+                                            <label>
+                                                <input
+                                                    type="number"
+                                                    v-model.number="sensorAlignment.gyro_1_align_roll"
+                                                    step="0.1"
+                                                    min="-180"
+                                                    max="360"
+                                                    :aria-label="$t('configurationGyro1AlignmentRoll')"
+                                                />
+                                                <span>{{ $t("configurationGyro1AlignmentRoll") }}</span>
+                                            </label>
+                                        </div>
+                                        <div class="sensor_align_inputs">
+                                            <div class="alignicon pitch"></div>
+                                            <label>
+                                                <input
+                                                    type="number"
+                                                    v-model.number="sensorAlignment.gyro_1_align_pitch"
+                                                    step="0.1"
+                                                    min="-180"
+                                                    max="360"
+                                                    :aria-label="$t('configurationGyro1AlignmentPitch')"
+                                                />
+                                                <span>{{ $t("configurationGyro1AlignmentPitch") }}</span>
+                                            </label>
+                                        </div>
+                                        <div class="sensor_align_inputs">
+                                            <div class="alignicon yaw"></div>
+                                            <label>
+                                                <input
+                                                    type="number"
+                                                    v-model.number="sensorAlignment.gyro_1_align_yaw"
+                                                    step="0.1"
+                                                    min="-180"
+                                                    max="360"
+                                                    :aria-label="$t('configurationGyro1AlignmentYaw')"
+                                                />
+                                                <span>{{ $t("configurationGyro1AlignmentYaw") }}</span>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <div class="select" v-if="showGyro2Align">
+                                        <select v-model.number="sensorAlignment.gyro_2_align">
+                                            <option :value="0">
+                                                {{ $t("configurationSensorAlignmentDefaultOption") }}
+                                            </option>
+                                            <option
+                                                v-for="(align, idx) in sensorAlignments"
+                                                :key="idx"
+                                                :value="idx + 1"
+                                            >
+                                                {{ align }}
+                                            </option>
+                                        </select>
+                                        <span>{{ $t("configurationSensorAlignmentGyro2") }}</span>
+                                    </div>
+
+                                    <div class="sensor_align_content" v-if="sensorAlignment.gyro_2_align === 9">
+                                        <div class="sensor_align_inputs">
+                                            <div class="alignicon roll"></div>
+                                            <label>
+                                                <input
+                                                    type="number"
+                                                    v-model.number="sensorAlignment.gyro_2_align_roll"
+                                                    step="0.1"
+                                                    min="-180"
+                                                    max="360"
+                                                    :aria-label="$t('configurationGyro2AlignmentRoll')"
+                                                />
+                                                <span>{{ $t("configurationGyro2AlignmentRoll") }}</span>
+                                            </label>
+                                        </div>
+                                        <div class="sensor_align_inputs">
+                                            <div class="alignicon pitch"></div>
+                                            <label>
+                                                <input
+                                                    type="number"
+                                                    v-model.number="sensorAlignment.gyro_2_align_pitch"
+                                                    step="0.1"
+                                                    min="-180"
+                                                    max="360"
+                                                    :aria-label="$t('configurationGyro2AlignmentPitch')"
+                                                />
+                                                <span>{{ $t("configurationGyro2AlignmentPitch") }}</span>
+                                            </label>
+                                        </div>
+                                        <div class="sensor_align_inputs">
+                                            <div class="alignicon yaw"></div>
+                                            <label>
+                                                <input
+                                                    type="number"
+                                                    v-model.number="sensorAlignment.gyro_2_align_yaw"
+                                                    step="0.1"
+                                                    min="-180"
+                                                    max="360"
+                                                    :aria-label="$t('configurationGyro2AlignmentYaw')"
+                                                />
+                                                <span>{{ $t("configurationGyro2AlignmentYaw") }}</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- MAGNETOMETER ALIGNMENT -->
+                    <div class="gui_box grey" v-if="showMagAlign">
+                        <div class="gui_box_titlebar">
+                            <div class="spacer_box_title">{{ $t("configurationMagAlignment") }}</div>
+                            <div class="helpicon cf_tip" :title="$t('configurationMagAlignmentHelp')"></div>
+                        </div>
+                        <div class="spacer_box">
+                            <div class="select">
+                                <select v-model.number="sensorAlignment.align_mag">
+                                    <option :value="0">
+                                        {{ $t("configurationSensorAlignmentDefaultOption") }}
+                                    </option>
+                                    <option v-for="(align, idx) in sensorAlignments" :key="idx" :value="idx + 1">
+                                        {{ align }}
+                                    </option>
+                                </select>
+                            </div>
+
+                            <div class="sensor_align_content" v-if="sensorAlignment.align_mag === 9">
+                                <div class="sensor_align_inputs">
+                                    <div class="alignicon roll"></div>
+                                    <label>
+                                        <input
+                                            type="number"
+                                            v-model.number="sensorAlignment.mag_align_roll"
+                                            step="0.1"
+                                            min="-180"
+                                            max="360"
+                                            :aria-label="$t('configurationMagAlignmentRoll')"
+                                        />
+                                        <span>{{ $t("configurationMagAlignmentRoll") }}</span>
+                                    </label>
+                                </div>
+                                <div class="sensor_align_inputs">
+                                    <div class="alignicon pitch"></div>
+                                    <label>
+                                        <input
+                                            type="number"
+                                            v-model.number="sensorAlignment.mag_align_pitch"
+                                            step="0.1"
+                                            min="-180"
+                                            max="360"
+                                            :aria-label="$t('configurationMagAlignmentPitch')"
+                                        />
+                                        <span>{{ $t("configurationMagAlignmentPitch") }}</span>
+                                    </label>
+                                </div>
+                                <div class="sensor_align_inputs">
+                                    <div class="alignicon yaw"></div>
+                                    <label>
+                                        <input
+                                            type="number"
+                                            v-model.number="sensorAlignment.mag_align_yaw"
+                                            step="0.1"
+                                            min="-180"
+                                            max="360"
+                                            :aria-label="$t('configurationMagAlignmentYaw')"
+                                        />
+                                        <span>{{ $t("configurationMagAlignmentYaw") }}</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- OTHER SENSORS -->
+                    <div class="gui_box grey" v-if="showOtherSensors">
+                        <div class="gui_box_titlebar">
+                            <div class="spacer_box_title">{{ $t("configurationSensors") }}</div>
+                            <div class="helpicon cf_tip" :title="$t('configurationSensorsHelp')"></div>
+                        </div>
+                        <div class="spacer_box">
+                            <!-- MAG DECLINATION -->
+                            <div class="number" v-if="showMagDeclination">
+                                <label>
+                                    <input type="number" step="0.1" v-model.number="magDeclination" />
+                                    <span>{{ $t("configurationMagDeclination") }}</span>
+                                </label>
+                            </div>
+
+                            <!-- RANGEFINDER -->
+                            <div class="select" v-if="showRangefinder">
+                                <select v-model.number="sensorConfig.sonar_hardware">
+                                    <option v-for="(type, idx) in sonarTypesList" :key="idx" :value="idx">
+                                        {{ type }}
+                                    </option>
+                                </select>
+                                <span>{{ $t("configurationRangefinder") }}</span>
+                            </div>
+
+                            <!-- OPTICAL FLOW -->
+                            <div class="select" v-if="showOpticalFlow">
+                                <select v-model.number="sensorConfig.opticalflow_hardware">
+                                    <option v-for="(type, idx) in opticalFlowTypesList" :key="idx" :value="idx">
+                                        {{ type }}
+                                    </option>
+                                </select>
+                                <span>{{ $t("configurationOpticalflow") }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ACCELEROMETER TRIM -->
+                    <div class="gui_box grey" v-if="accHardwareEnabled">
+                        <div class="gui_box_titlebar">
+                            <div class="spacer_box_title">{{ $t("initialSetupAccelTrimsHead") }}</div>
+                        </div>
+                        <div class="spacer_box">
+                            <div class="number">
+                                <label>
+                                    <input type="number" name="acc_trim_roll" v-model.number="accelTrims.roll" />
+                                    <span>{{ $t("configurationAccelTrimRoll") }}</span>
+                                </label>
+                            </div>
+                            <div class="number">
+                                <label>
+                                    <input type="number" name="acc_trim_pitch" v-model.number="accelTrims.pitch" />
+                                    <span>{{ $t("configurationAccelTrimPitch") }}</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- DSHOT BEACON -->
+                    <div class="gui_box grey dshotbeeper">
+                        <div class="gui_box_titlebar">
+                            <div class="spacer_box_title">{{ $t("configurationDshotBeeper") }}</div>
+                            <div class="helpicon cf_tip" :title="$t('configurationDshotBeaconHelp')"></div>
+                        </div>
+                        <div class="spacer_box">
+                            <div class="select">
+                                <select class="dshotBeeperBeaconTone" v-model.number="dshotBeaconTone">
+                                    <option value="0">{{ $t("portsTelemetryDisabled") }}</option>
+                                    <option v-for="i in 5" :key="i" :value="i">{{ i }}</option>
+                                </select>
+                                <span>{{ $t("configurationDshotBeaconTone") }}</span>
+                            </div>
+
+                            <div class="beeper-controls">
+                                <button type="button" class="btn beeper-enable-all" @click="enableAllDshot">
+                                    {{ $t("configurationBeeperEnableAll") }}
+                                </button>
+                                <button type="button" class="btn beeper-disable-all" @click="disableAllDshot">
+                                    {{ $t("configurationBeeperDisableAll") }}
+                                </button>
+                            </div>
+
+                            <table class="dshot-beacon-table">
+                                <thead>
+                                    <tr>
+                                        <th scope="col" class="col-enable">
+                                            {{ $t("configurationFeatureEnabled") }}
+                                        </th>
+                                        <th scope="col" class="col-name">{{ $t("configurationFeatureName") }}</th>
+                                        <th scope="col" class="col-description">
+                                            {{ $t("configurationFeatureDescription") }}
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr v-for="cond in dshotBeaconConditionsList" :key="cond.bit">
+                                        <td>
+                                            <input
+                                                type="checkbox"
+                                                class="condition toggle"
+                                                :id="'dshot-cond-' + cond.bit"
+                                                :checked="isDshotConditionEnabled(cond)"
+                                                @change="toggleDshotCondition(cond, $event.target.checked)"
+                                            />
+                                        </td>
+                                        <td>
+                                            <div>{{ cond.name }}</div>
+                                        </td>
+                                        <td>
+                                            <span :title="$t('beeper' + cond.name)">{{
+                                                $t("beeper" + cond.name)
+                                            }}</span>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- BEEPER CONFIGURATION -->
+                    <div class="gui_box grey beepers">
+                        <div class="gui_box_titlebar">
+                            <div class="spacer_box_title">{{ $t("configurationBeeper") }}</div>
+                        </div>
+                        <div class="spacer_box">
+                            <div class="beeper-controls">
+                                <button type="button" class="btn beeper-enable-all" @click="enableAllBeepers">
+                                    {{ $t("configurationBeeperEnableAll") }}
+                                </button>
+                                <button type="button" class="btn beeper-disable-all" @click="disableAllBeepers">
+                                    {{ $t("configurationBeeperDisableAll") }}
+                                </button>
+                            </div>
+                            <table class="beeper-configuration-table">
+                                <thead>
+                                    <tr>
+                                        <th scope="col">{{ $t("configurationFeatureEnabled") }}</th>
+                                        <th scope="col">{{ $t("configurationFeatureName") }}</th>
+                                        <th scope="col">{{ $t("configurationFeatureDescription") }}</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="beeper-configuration">
+                                    <tr
+                                        v-for="beeper in beepersList"
+                                        :key="beeper.bit"
+                                        v-show="beeper.visible !== false"
+                                    >
+                                        <td>
+                                            <input
+                                                type="checkbox"
+                                                class="condition toggle"
+                                                :id="'beeper-' + beeper.bit"
+                                                :checked="isBeeperEnabled(beeper)"
+                                                @change="toggleBeeper(beeper, $event.target.checked)"
+                                            />
+                                        </td>
+                                        <td>
+                                            <div>{{ beeper.name }}</div>
+                                        </td>
+                                        <td>
+                                            <span :title="$t('beeper' + beeper.name)">{{
+                                                $t("beeper" + beeper.name)
+                                            }}</span>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="content_toolbar toolbar_fixed_bottom" style="position: fixed">
+            <div class="btn save_btn">
+                <a class="save" href="#" @click.prevent="saveConfig()">{{ $t("configurationButtonSave") }}</a>
+            </div>
+        </div>
+    </div>
+</template>
+
+<script>
+import { defineComponent, ref, reactive, onMounted, computed, nextTick, watch, onUnmounted } from "vue";
+import { useConnectionStore } from "@/stores/connection";
+import { useNavigationStore } from "@/stores/navigation";
+import { useFlightControllerStore } from "@/stores/fc";
+import { useDialog } from "@/composables/useDialog";
+import { useReboot } from "@/composables/useReboot";
+import GUI from "../../js/gui";
+import MSP from "../../js/msp";
+import MSPCodes from "../../js/msp/MSPCodes";
+import { mspHelper } from "../../js/msp/MSPHelper.js";
+import { gui_log } from "../../js/gui_log";
+import { i18n } from "../../js/localization";
+import { sensorTypes } from "../../js/sensor_types"; // Import for dropdown lists
+import { have_sensor } from "../../js/sensor_helpers";
+import semver from "semver";
+import { API_VERSION_1_45, API_VERSION_1_46, API_VERSION_1_47 } from "../../js/data_storage";
+import { bit_check, bit_set, bit_clear } from "../../js/bit";
+import { updateTabList } from "../../js/utils/updateTabList";
+import WikiButton from "../elements/WikiButton.vue";
+
+export default defineComponent({
+    name: "ConfigurationTab",
+    components: {
+        WikiButton,
+    },
+    setup() {
+        // Reactive State
+        const connectionStore = useConnectionStore();
+        const navigationStore = useNavigationStore();
+        const fcStore = useFlightControllerStore();
+        const dialog = useDialog();
+        const { reboot } = useReboot();
+
+        // Helper to perform reboot after save
+        const performReboot = () => {
+            reboot();
+        };
+
+        const pidAdvancedConfig = reactive({
+            pid_process_denom: 1,
+        });
+
+        const sensorConfig = reactive({
+            acc_hardware: 0,
+            baro_hardware: 0,
+            mag_hardware: 0,
+            sonar_hardware: 0,
+            opticalflow_hardware: 0,
+        });
+
+        const boardAlignment = reactive({
+            roll: 0,
+            pitch: 0,
+            yaw: 0,
+        });
+
+        const fpvCamAngleDegrees = ref(0);
+
+        const craftName = ref("");
+        const pilotName = ref("");
+        const showPilotName = ref(false);
+
+        const isSaving = ref(false);
+        const isMounted = ref(true);
+
+        onUnmounted(() => {
+            isMounted.value = false;
+        });
+
+        const armingConfig = reactive({
+            small_angle: 25,
+            gyro_cal_on_first_arm_bool: false,
+            auto_disarm_delay: 0,
+        });
+
+        const accelTrims = reactive({
+            roll: 0,
+            pitch: 0,
+        });
+
+        const sensorAlignment = reactive({
+            gyro_to_use: 0,
+            gyro_1_align: 0,
+            gyro_2_align: 0,
+            align_mag: 0,
+            mag_align_roll: 0,
+            mag_align_pitch: 0,
+            mag_align_yaw: 0,
+            gyro_1_align_roll: 0,
+            gyro_1_align_pitch: 0,
+            gyro_1_align_yaw: 0,
+            gyro_2_align_roll: 0,
+            gyro_2_align_pitch: 0,
+            gyro_2_align_yaw: 0,
+
+            gyro_align: [], // API 1.47+
+            gyro_enable_mask: 0, // API 1.47+
+            gyro_align_roll: [], // API 1.47+
+            gyro_align_pitch: [], // API 1.47+
+            gyro_align_yaw: [], // API 1.47+
+        });
+
+        const magDeclination = ref(0);
+        const showGyroCalOnFirstArm = ref(false);
+        const showAutoDisarmDelay = ref(false);
+        const hasSecondGyro = ref(false);
+        const hasDualGyros = ref(false);
+        const showMultiGyro = ref(false); // API 1.47+ multi-gyro UI
+
+        const gyroList = computed(() => {
+            if (!showMultiGyro.value) return [];
+
+            const types = sensorTypes().gyro.elements;
+            const detectedHardware = fcStore.gyroSensor?.gyro_hardware || [];
+
+            // Use actual detected hardware count
+            const count = detectedHardware.length;
+            if (count === 0) return [];
+
+            const gyros = [];
+            for (let i = 0; i < count; i++) {
+                const hardwareResult = detectedHardware[i];
+                let hardwareName;
+
+                if (
+                    hardwareResult === undefined ||
+                    types[hardwareResult] === "AUTO" ||
+                    types[hardwareResult] === "NONE" ||
+                    types[hardwareResult] === "DEFAULT"
+                ) {
+                    continue;
+                }
+
+                hardwareName = types[hardwareResult];
+
+                gyros.push({
+                    index: i,
+                    name: hardwareName,
+                    enabled: bit_check(sensorAlignment.gyro_enable_mask, i),
+                });
+            }
+            return gyros;
+        });
+
+        const toggleGyro = (index, enabled) => {
+            if (enabled) {
+                sensorAlignment.gyro_enable_mask = bit_set(sensorAlignment.gyro_enable_mask, index);
+            } else {
+                const nextMask = bit_clear(sensorAlignment.gyro_enable_mask, index);
+
+                // Enforce: at least one gyro must remain enabled on API >= 1.47
+                if (
+                    nextMask === 0 &&
+                    fcStore.config?.apiVersion &&
+                    semver.gte(fcStore.config.apiVersion, API_VERSION_1_47)
+                ) {
+                    gui_log(i18n.getMessage("configurationGyroRequired"));
+                    // Reset checkbox state visually (since v-model isn't used here directly, we rely on re-rendering or manual intervention,
+                    // but since the mask isn't updated, the computed property 'gyroList' will re-evaluate to 'enabled: true')
+                    return;
+                }
+
+                sensorAlignment.gyro_enable_mask = nextMask;
+            }
+        };
+
+        const updateGyroAlign = (index, value) => {
+            // Vue reactivity caveat with arrays:
+            // sensorAlignment.gyro_align[index] = value;
+            // Should verify if this triggers update, if not we might need to splice or recreate array
+            if (sensorAlignment.gyro_align) {
+                sensorAlignment.gyro_align[index] = value;
+            }
+        };
+
+        const showGyro1Align = ref(false);
+        const showGyro2Align = ref(false);
+        const showMagAlign = ref(false);
+        const showMagDeclination = ref(false);
+        const showRangefinder = ref(false);
+        const showGyroToUse = computed(() => {
+            return fcStore.config?.apiVersion && semver.lt(fcStore.config.apiVersion, API_VERSION_1_47);
+        });
+        const showOpticalFlow = ref(false);
+
+        // This section contains gyro alignment dropdowns (API < 1.47) and mag alignment (API >= 1.47)
+        const showSensorAlignment = computed(() => {
+            // Show Active IMU box if:
+            // 1. Gyro selection is available (showGyroToUse)
+            // 2. OR Legacy Gyro Alignment is available (showGyro1/2Align)
+            // 3. OR (Implicitly) Custom Gyro Inputs are desired (we default to showing this box for Gyro configs)
+            return showGyroToUse.value || showGyro1Align.value || showGyro2Align.value;
+        });
+        const showOtherSensors = computed(() => {
+            return showMagDeclination.value || showRangefinder.value || showOpticalFlow.value;
+        });
+        const sonarTypesList = ref([]);
+        const opticalFlowTypesList = ref([]);
+        const sensorAlignments = ref([
+            "CW 0°",
+            "CW 90°",
+            "CW 180°",
+            "CW 270°",
+            "CW 0° flip",
+            "CW 90° flip",
+            "CW 180° flip",
+            "CW 270° flip",
+            i18n.getMessage("configurationSensorAlignmentCustom"),
+        ]);
+
+        // Other Features & Beepers State wrapper
+        const featuresList = computed(() => {
+            if (!fcStore.features?.features?._features) {
+                return [];
+            }
+            return fcStore.features.features._features.filter((feature) => {
+                return feature.mode !== "select" && feature.group === "other";
+            });
+        });
+
+        const beepersList = computed(() => {
+            if (!fcStore.beepers?.beepers?._beepers) {
+                return [];
+            }
+            return fcStore.beepers.beepers._beepers;
+        });
+
+        const dshotBeaconConditionsList = computed(() => {
+            if (!fcStore.beepers?.dshotBeaconConditions?._beepers) {
+                return [];
+            }
+            return fcStore.beepers.dshotBeaconConditions._beepers;
+        });
+
+        const dshotBeaconTone = ref(0); // 0 = disabled
+        const beeperDisabledMask = ref(0);
+        const dshotDisabledMask = ref(0);
+
+        const featureMask = computed(() => {
+            if (!fcStore.features?.features) {
+                return 0;
+            }
+            return fcStore.features.features._featureMask;
+        });
+
+        // Methods for toggling bits
+        const isFeatureEnabled = (feature) => {
+            if (!fcStore.features?.features) {
+                return false;
+            }
+            return bit_check(fcStore.features.features._featureMask, feature.bit);
+        };
+
+        const toggleFeature = (feature, checked) => {
+            if (!fcStore.features?.features) {
+                return;
+            }
+            if (checked) {
+                fcStore.features.features._featureMask = bit_set(fcStore.features.features._featureMask, feature.bit);
+            } else {
+                fcStore.features.features._featureMask = bit_clear(fcStore.features.features._featureMask, feature.bit);
+            }
+            updateTabList(fcStore.features.features);
+        };
+
+        const isBeeperEnabled = (beeper) => {
+            if (!fcStore.beepers?.beepers) {
+                return false;
+            }
+            // Note: Beeper logic uses DisabledMask, so checked means NOT disabled
+            return !bit_check(beeperDisabledMask.value, beeper.bit);
+        };
+
+        const toggleBeeper = (beeper, checked) => {
+            if (!fcStore.beepers?.beepers) {
+                return;
+            }
+            if (checked) {
+                // To enable, we CLEAR the disabled bit
+                beeperDisabledMask.value = bit_clear(beeperDisabledMask.value, beeper.bit);
+            } else {
+                // To disable, we SET the disabled bit
+                beeperDisabledMask.value = bit_set(beeperDisabledMask.value, beeper.bit);
+            }
+            fcStore.beepers.beepers._beeperDisabledMask = beeperDisabledMask.value;
+        };
+
+        const enableAllBeepers = () => {
+            if (!fcStore.beepers?.beepers) {
+                return;
+            }
+            let mask = beeperDisabledMask.value;
+            beepersList.value.forEach((beeper) => {
+                if (beeper.visible !== false) {
+                    mask = bit_clear(mask, beeper.bit);
+                }
+            });
+            beeperDisabledMask.value = mask;
+            fcStore.beepers.beepers._beeperDisabledMask = mask;
+        };
+
+        const disableAllBeepers = () => {
+            if (!fcStore.beepers?.beepers) {
+                return;
+            }
+            let mask = beeperDisabledMask.value;
+            beepersList.value.forEach((beeper) => {
+                if (beeper.visible !== false) {
+                    mask = bit_set(mask, beeper.bit);
+                }
+            });
+            beeperDisabledMask.value = mask;
+            fcStore.beepers.beepers._beeperDisabledMask = mask;
+        };
+
+        const isDshotConditionEnabled = (cond) => {
+            if (!fcStore.beepers?.dshotBeaconConditions) {
+                return false;
+            }
+            // Same logic as beepers (DisabledMask)
+            return !bit_check(dshotDisabledMask.value, cond.bit);
+        };
+
+        const toggleDshotCondition = (cond, checked) => {
+            if (!fcStore.beepers?.dshotBeaconConditions) {
+                return;
+            }
+            if (checked) {
+                dshotDisabledMask.value = bit_clear(dshotDisabledMask.value, cond.bit);
+            } else {
+                dshotDisabledMask.value = bit_set(dshotDisabledMask.value, cond.bit);
+            }
+            fcStore.beepers.dshotBeaconConditions._beeperDisabledMask = dshotDisabledMask.value;
+        };
+
+        const enableAllDshot = () => {
+            if (!fcStore.beepers?.dshotBeaconConditions) {
+                return;
+            }
+            let mask = dshotDisabledMask.value;
+            dshotBeaconConditionsList.value.forEach((cond) => {
+                mask = bit_clear(mask, cond.bit);
+            });
+            dshotDisabledMask.value = mask;
+            fcStore.beepers.dshotBeaconConditions._beeperDisabledMask = mask;
+        };
+
+        const disableAllDshot = () => {
+            if (!fcStore.beepers?.dshotBeaconConditions) {
+                return;
+            }
+            let mask = dshotDisabledMask.value;
+            dshotBeaconConditionsList.value.forEach((cond) => {
+                mask = bit_set(mask, cond.bit);
+            });
+            dshotDisabledMask.value = mask;
+            fcStore.beepers.dshotBeaconConditions._beeperDisabledMask = mask;
+        };
+
+        // Computed Wrappers for Hardware Switches (logic inverted: 1 = disabled usually? legacy says: !== 1)
+        // Legacy: accHardwareSwitch.prop("checked", FC.SENSOR_CONFIG.acc_hardware !== 1);
+        // So 1 is None/Disabled?
+        const accHardwareEnabled = computed({
+            get: () => sensorConfig.acc_hardware !== 1,
+            set: (val) => {
+                sensorConfig.acc_hardware = val ? 0 : 1;
+            }, // Assuming 0 is Default/Auto
+        });
+
+        const baroHardwareEnabled = computed({
+            get: () => sensorConfig.baro_hardware !== 1,
+            set: (val) => {
+                sensorConfig.baro_hardware = val ? 0 : 1;
+            },
+        });
+
+        const magHardwareEnabled = computed({
+            get: () => sensorConfig.mag_hardware !== 1,
+            set: (val) => {
+                sensorConfig.mag_hardware = val ? 0 : 1;
+            },
+        });
+
+        const gyroFrequencyDisplay = ref("");
+        const pidDenomOptions = ref([]);
+
+        // Loading Logic
+        const loadConfig = async () => {
+            try {
+                if (!isMounted.value) return;
+                await Promise.resolve(); // Start chain
+                await MSP.promise(MSPCodes.MSP_FEATURE_CONFIG);
+                await MSP.promise(MSPCodes.MSP_BEEPER_CONFIG);
+                await MSP.promise(MSPCodes.MSP_BOARD_ALIGNMENT_CONFIG);
+                await MSP.promise(MSPCodes.MSP_ACC_TRIM);
+                await MSP.promise(MSPCodes.MSP_ARMING_CONFIG);
+                await MSP.promise(MSPCodes.MSP_RC_DEADBAND);
+                await MSP.promise(MSPCodes.MSP_SENSOR_CONFIG);
+                await MSP.promise(MSPCodes.MSP_SENSOR_ALIGNMENT);
+
+                if (!isMounted.value) return;
+
+                if (semver.lt(fcStore.config.apiVersion, API_VERSION_1_45)) {
+                    await MSP.promise(MSPCodes.MSP_NAME);
+                }
+
+                if (semver.gte(fcStore.config.apiVersion, API_VERSION_1_45)) {
+                    await MSP.promise(
+                        MSPCodes.MSP2_GET_TEXT,
+                        mspHelper.crunch(MSPCodes.MSP2_GET_TEXT, MSPCodes.CRAFT_NAME),
+                    );
+                }
+
+                await MSP.promise(MSPCodes.MSP_RX_CONFIG);
+
+                if (semver.gte(fcStore.config.apiVersion, API_VERSION_1_45)) {
+                    await MSP.promise(
+                        MSPCodes.MSP2_GET_TEXT,
+                        mspHelper.crunch(MSPCodes.MSP2_GET_TEXT, MSPCodes.PILOT_NAME),
+                    );
+                }
+
+                if (!isMounted.value) return;
+
+                await MSP.promise(MSPCodes.MSP_ADVANCED_CONFIG);
+
+                if (semver.gte(fcStore.config.apiVersion, API_VERSION_1_46)) {
+                    await MSP.promise(MSPCodes.MSP_COMPASS_CONFIG);
+                }
+
+                if (semver.gte(fcStore.config.apiVersion, API_VERSION_1_47)) {
+                    await MSP.promise(MSPCodes.MSP2_GYRO_SENSOR);
+                }
+
+                if (!isMounted.value) return;
+
+                initializeUI();
+                await nextTick();
+                GUI.switchery();
+                GUI.content_ready();
+            } catch (e) {
+                console.error("Failed to load configuration", e);
+                GUI.content_ready();
+            }
+        };
+
+        const initializeUI = () => {
+            // Populate Reactive State
+            pidAdvancedConfig.pid_process_denom = fcStore.pidAdvancedConfig.pid_process_denom;
+
+            sensorConfig.acc_hardware = fcStore.sensorConfig.acc_hardware;
+            sensorConfig.baro_hardware = fcStore.sensorConfig.baro_hardware;
+            sensorConfig.mag_hardware = fcStore.sensorConfig.mag_hardware;
+            sensorConfig.sonar_hardware = fcStore.sensorConfig.sonar_hardware;
+            sensorConfig.opticalflow_hardware = fcStore.sensorConfig.opticalflow_hardware;
+
+            boardAlignment.roll = fcStore.boardAlignment.roll;
+            boardAlignment.pitch = fcStore.boardAlignment.pitch;
+            boardAlignment.yaw = fcStore.boardAlignment.yaw;
+
+            fpvCamAngleDegrees.value = fcStore.rxConfig.fpvCamAngleDegrees;
+
+            if (semver.gte(fcStore.config.apiVersion, API_VERSION_1_45)) {
+                craftName.value = fcStore.config.craftName;
+                pilotName.value = fcStore.config.pilotName;
+                showPilotName.value = true;
+            } else {
+                craftName.value = fcStore.config.name;
+                showPilotName.value = false;
+            }
+
+            // Gyro Frequency Logic
+            updateGyroDenom(fcStore.config.sampleRateHz);
+
+            updatePidDenomOptions();
+
+            // Load DShot Tone
+            if (fcStore.beepers) {
+                dshotBeaconTone.value = fcStore.beepers.dshotBeaconTone;
+                if (fcStore.beepers.beepers) {
+                    beeperDisabledMask.value = fcStore.beepers.beepers._beeperDisabledMask;
+                }
+                if (fcStore.beepers.dshotBeaconConditions) {
+                    dshotDisabledMask.value = fcStore.beepers.dshotBeaconConditions._beeperDisabledMask;
+                }
+            }
+
+            // Arming Config
+            armingConfig.small_angle = fcStore.armingConfig.small_angle;
+
+            if (semver.gte(fcStore.config.apiVersion, API_VERSION_1_46)) {
+                showGyroCalOnFirstArm.value = true;
+                armingConfig.gyro_cal_on_first_arm_bool = fcStore.armingConfig.gyro_cal_on_first_arm === 1;
+                armingConfig.auto_disarm_delay = fcStore.armingConfig.auto_disarm_delay;
+
+                if (isFeatureEnabled({ name: "MOTOR_STOP", bit: 4 })) {
+                    // Check manually or reuse logic
+                    showAutoDisarmDelay.value = true;
+                }
+            }
+
+            // Accel Trims
+            accelTrims.pitch = fcStore.config.accelerometerTrims[0];
+            accelTrims.roll = fcStore.config.accelerometerTrims[1];
+
+            // Sensor Alignment
+            sensorAlignment.gyro_to_use = fcStore.sensorAlignment.gyro_to_use;
+            sensorAlignment.gyro_1_align = fcStore.sensorAlignment.gyro_1_align;
+            sensorAlignment.gyro_2_align = fcStore.sensorAlignment.gyro_2_align;
+            sensorAlignment.align_mag = fcStore.sensorAlignment.align_mag;
+
+            sensorAlignment.gyro_1_align_roll = fcStore.sensorAlignment.gyro_1_align_roll;
+            sensorAlignment.gyro_1_align_pitch = fcStore.sensorAlignment.gyro_1_align_pitch;
+            sensorAlignment.gyro_1_align_yaw = fcStore.sensorAlignment.gyro_1_align_yaw;
+            sensorAlignment.gyro_2_align_roll = fcStore.sensorAlignment.gyro_2_align_roll;
+            sensorAlignment.gyro_2_align_pitch = fcStore.sensorAlignment.gyro_2_align_pitch;
+            sensorAlignment.gyro_2_align_yaw = fcStore.sensorAlignment.gyro_2_align_yaw;
+            sensorAlignment.gyro_align = fcStore.sensorAlignment.gyro_align || [];
+            sensorAlignment.gyro_enable_mask = fcStore.sensorAlignment.gyro_enable_mask || 0;
+            sensorAlignment.gyro_align_roll = fcStore.sensorAlignment.gyro_align_roll || [];
+            sensorAlignment.gyro_align_pitch = fcStore.sensorAlignment.gyro_align_pitch || [];
+            sensorAlignment.gyro_align_yaw = fcStore.sensorAlignment.gyro_align_yaw || [];
+
+            if (semver.gte(fcStore.config.apiVersion, API_VERSION_1_47)) {
+                sensorAlignment.mag_align_roll = fcStore.sensorAlignment.mag_align_roll || 0;
+                sensorAlignment.mag_align_pitch = fcStore.sensorAlignment.mag_align_pitch || 0;
+                sensorAlignment.mag_align_yaw = fcStore.sensorAlignment.mag_align_yaw || 0;
+            }
+
+            // Detect Gyros
+            // Simplified detection logic compared to legacy for now, assume 1 unless flags say otherwise
+            const GYRO_DETECTION_FLAGS = {
+                DETECTED_GYRO_1: 1 << 0,
+                DETECTED_GYRO_2: 1 << 1,
+                DETECTED_DUAL_GYROS: 1 << 7,
+            };
+            const flags = fcStore.sensorAlignment.gyro_detection_flags || 0;
+            hasSecondGyro.value = (flags & GYRO_DETECTION_FLAGS.DETECTED_GYRO_2) !== 0;
+            hasDualGyros.value = (flags & GYRO_DETECTION_FLAGS.DETECTED_DUAL_GYROS) !== 0;
+
+            // Gyro alignment dropdowns are only available for API < 1.47
+            // In API 1.47+, the firmware uses gyro_enable_mask instead of individual gyro alignments
+            // In API 1.47+, the firmware uses gyro_enable_mask instead of individual gyro alignments
+            if (semver.lt(fcStore.config.apiVersion, API_VERSION_1_47)) {
+                showGyro1Align.value = true;
+                showGyro2Align.value = hasSecondGyro.value;
+                showMultiGyro.value = false;
+            } else {
+                showGyro1Align.value = false;
+                showGyro2Align.value = false;
+                showMultiGyro.value = true;
+            }
+
+            // Mag Declination & Alignment
+            if (have_sensor(fcStore.config.activeSensors, "mag")) {
+                if (semver.gte(fcStore.config.apiVersion, API_VERSION_1_46)) {
+                    showMagDeclination.value = true;
+                    magDeclination.value = fcStore.compassConfig.mag_declination;
+                }
+                // Show mag alignment for API >= 1.47
+                if (semver.gte(fcStore.config.apiVersion, API_VERSION_1_47)) {
+                    showMagAlign.value = true;
+                }
+            } else {
+                showMagDeclination.value = false;
+                showMagAlign.value = false;
+            }
+
+            // Rangefinder / Optical Flow (API 1.47+)
+            if (semver.gte(fcStore.config.apiVersion, API_VERSION_1_47)) {
+                const types = sensorTypes();
+                sonarTypesList.value = types.sonar.elements;
+                showRangefinder.value = sonarTypesList.value?.length > 0;
+
+                opticalFlowTypesList.value = types.opticalflow.elements;
+                showOpticalFlow.value = opticalFlowTypesList.value?.length > 0;
+            }
+        };
+
+        const updateGyroDenom = (gyroFrequency) => {
+            // Mirror legacy updateGyroDenomReadOnly
+            if (gyroFrequency === 0) {
+                gyroFrequencyDisplay.value = i18n.getMessage("configurationSpeedGyroNoGyro");
+            } else {
+                gyroFrequencyDisplay.value = i18n.getMessage("configurationKHzUnitLabel", {
+                    value: (gyroFrequency / 1000).toFixed(2),
+                });
+            }
+        };
+
+        const updatePidDenomOptions = () => {
+            // Mirror legacy logic
+            const pidBaseFreq = fcStore.config.sampleRateHz / 1000;
+            const MAX_DENOM = 8;
+            const options = [];
+
+            for (let denom = 1; denom <= MAX_DENOM; denom++) {
+                let text;
+                if (pidBaseFreq === 0) {
+                    text = i18n.getMessage("configurationSpeedPidNoGyro", { value: denom });
+                } else {
+                    text = i18n.getMessage("configurationKHzUnitLabel", {
+                        value: (pidBaseFreq / denom).toFixed(2),
+                    });
+                }
+                options.push({ value: denom, text });
+            }
+            pidDenomOptions.value = options;
+        };
+
+        const saveConfig = async () => {
+            if (isSaving.value) {
+                return;
+            }
+            isSaving.value = true;
+            try {
+                console.log("Saving configuration...");
+                gui_log("Saving...");
+
+                fcStore.pidAdvancedConfig.pid_process_denom = pidAdvancedConfig.pid_process_denom;
+
+                fcStore.sensorConfig.acc_hardware = sensorConfig.acc_hardware;
+                fcStore.sensorConfig.baro_hardware = sensorConfig.baro_hardware;
+                fcStore.sensorConfig.mag_hardware = sensorConfig.mag_hardware;
+
+                fcStore.boardAlignment.roll = boardAlignment.roll;
+                fcStore.boardAlignment.pitch = boardAlignment.pitch;
+                fcStore.boardAlignment.yaw = boardAlignment.yaw;
+
+                fcStore.rxConfig.fpvCamAngleDegrees = fpvCamAngleDegrees.value;
+
+                if (semver.gte(fcStore.config.apiVersion, API_VERSION_1_45)) {
+                    fcStore.config.craftName = craftName.value;
+                    fcStore.config.pilotName = pilotName.value;
+                } else {
+                    fcStore.config.name = craftName.value;
+                }
+
+                if (fcStore.beepers) {
+                    fcStore.beepers.dshotBeaconTone = dshotBeaconTone.value;
+                }
+
+                fcStore.armingConfig.small_angle = armingConfig.small_angle;
+                if (semver.gte(fcStore.config.apiVersion, API_VERSION_1_46)) {
+                    fcStore.armingConfig.gyro_cal_on_first_arm = armingConfig.gyro_cal_on_first_arm_bool ? 1 : 0;
+                    fcStore.armingConfig.auto_disarm_delay = armingConfig.auto_disarm_delay;
+                }
+
+                fcStore.config.accelerometerTrims[0] = accelTrims.pitch;
+                fcStore.config.accelerometerTrims[1] = accelTrims.roll;
+
+                fcStore.sensorAlignment.gyro_to_use = sensorAlignment.gyro_to_use;
+                fcStore.sensorAlignment.gyro_1_align = sensorAlignment.gyro_1_align;
+                fcStore.sensorAlignment.gyro_2_align = sensorAlignment.gyro_2_align;
+                fcStore.sensorAlignment.align_mag = sensorAlignment.align_mag;
+
+                if (semver.lt(fcStore.config.apiVersion, API_VERSION_1_47)) {
+                    fcStore.sensorAlignment.gyro_1_align_roll = sensorAlignment.gyro_1_align_roll;
+                    fcStore.sensorAlignment.gyro_1_align_pitch = sensorAlignment.gyro_1_align_pitch;
+                    fcStore.sensorAlignment.gyro_1_align_yaw = sensorAlignment.gyro_1_align_yaw;
+                    fcStore.sensorAlignment.gyro_2_align_roll = sensorAlignment.gyro_2_align_roll;
+                    fcStore.sensorAlignment.gyro_2_align_pitch = sensorAlignment.gyro_2_align_pitch;
+                    fcStore.sensorAlignment.gyro_2_align_yaw = sensorAlignment.gyro_2_align_yaw;
+                } else {
+                    // API 1.47+ Multi-Gyro
+                    fcStore.sensorAlignment.gyro_enable_mask = sensorAlignment.gyro_enable_mask;
+                    fcStore.sensorAlignment.gyro_align = sensorAlignment.gyro_align;
+                    fcStore.sensorAlignment.gyro_align_roll = sensorAlignment.gyro_align_roll;
+                    fcStore.sensorAlignment.gyro_align_pitch = sensorAlignment.gyro_align_pitch;
+                    fcStore.sensorAlignment.gyro_align_yaw = sensorAlignment.gyro_align_yaw;
+                }
+
+                if (semver.gte(fcStore.config.apiVersion, API_VERSION_1_47)) {
+                    fcStore.sensorAlignment.mag_align_roll = sensorAlignment.mag_align_roll;
+                    fcStore.sensorAlignment.mag_align_pitch = sensorAlignment.mag_align_pitch;
+                    fcStore.sensorAlignment.mag_align_yaw = sensorAlignment.mag_align_yaw;
+                }
+
+                if (showMagDeclination.value) {
+                    fcStore.compassConfig.mag_declination = magDeclination.value;
+                }
+
+                if (semver.gte(fcStore.config.apiVersion, API_VERSION_1_47)) {
+                    fcStore.sensorConfig.sonar_hardware = sensorConfig.sonar_hardware;
+                    fcStore.sensorConfig.opticalflow_hardware = sensorConfig.opticalflow_hardware;
+                }
+
+                // Send MSP commands
+                await MSP.promise(MSPCodes.MSP_SET_FEATURE_CONFIG, mspHelper.crunch(MSPCodes.MSP_SET_FEATURE_CONFIG));
+
+                if (fcStore.beepers) {
+                    await MSP.promise(MSPCodes.MSP_SET_BEEPER_CONFIG, mspHelper.crunch(MSPCodes.MSP_SET_BEEPER_CONFIG));
+                }
+
+                await MSP.promise(
+                    MSPCodes.MSP_SET_BOARD_ALIGNMENT_CONFIG,
+                    mspHelper.crunch(MSPCodes.MSP_SET_BOARD_ALIGNMENT_CONFIG),
+                );
+                await MSP.promise(MSPCodes.MSP_SET_ACC_TRIM, mspHelper.crunch(MSPCodes.MSP_SET_ACC_TRIM));
+                await MSP.promise(MSPCodes.MSP_SET_ARMING_CONFIG, mspHelper.crunch(MSPCodes.MSP_SET_ARMING_CONFIG));
+                await MSP.promise(MSPCodes.MSP_SET_SENSOR_CONFIG, mspHelper.crunch(MSPCodes.MSP_SET_SENSOR_CONFIG));
+                await MSP.promise(
+                    MSPCodes.MSP_SET_SENSOR_ALIGNMENT,
+                    mspHelper.crunch(MSPCodes.MSP_SET_SENSOR_ALIGNMENT),
+                );
+
+                if (semver.lt(fcStore.config.apiVersion, API_VERSION_1_45)) {
+                    await MSP.promise(MSPCodes.MSP_SET_NAME, mspHelper.crunch(MSPCodes.MSP_SET_NAME));
+                } else {
+                    await MSP.promise(
+                        MSPCodes.MSP2_SET_TEXT,
+                        mspHelper.crunch(MSPCodes.MSP2_SET_TEXT, MSPCodes.CRAFT_NAME),
+                    );
+                    await MSP.promise(
+                        MSPCodes.MSP2_SET_TEXT,
+                        mspHelper.crunch(MSPCodes.MSP2_SET_TEXT, MSPCodes.PILOT_NAME),
+                    );
+                }
+
+                await MSP.promise(MSPCodes.MSP_SET_RX_CONFIG, mspHelper.crunch(MSPCodes.MSP_SET_RX_CONFIG));
+                await MSP.promise(MSPCodes.MSP_SET_ADVANCED_CONFIG, mspHelper.crunch(MSPCodes.MSP_SET_ADVANCED_CONFIG));
+
+                if (semver.gte(fcStore.config.apiVersion, API_VERSION_1_46)) {
+                    await MSP.promise(
+                        MSPCodes.MSP_SET_COMPASS_CONFIG,
+                        mspHelper.crunch(MSPCodes.MSP_SET_COMPASS_CONFIG),
+                    );
+                }
+
+                gui_log(i18n.getMessage("configurationSaved"));
+
+                // Save to EEPROM and Reboot
+                await new Promise((resolve) => {
+                    mspHelper.writeConfiguration(false, () => {
+                        navigationStore.cleanup(() => {
+                            performReboot();
+                            resolve();
+                        });
+                    });
+                });
+            } catch (e) {
+                console.error("Failed to save configuration", e);
+                gui_log(i18n.getMessage("configurationSaveFailed"));
+            } finally {
+                isSaving.value = false;
+            }
+        };
+
+        onMounted(() => {
+            loadConfig();
+        });
+
+        // Watch for beeper mask changes to reinitialize Switchery
+        watch([beeperDisabledMask, dshotDisabledMask, featureMask], async () => {
+            await nextTick();
+            GUI.switchery();
+        });
+
+        return {
+            pidAdvancedConfig,
+            sensorConfig,
+            accHardwareEnabled,
+            enableAllDshot,
+            disableAllDshot,
+            baroHardwareEnabled,
+            magHardwareEnabled,
+            gyroFrequencyDisplay,
+            pidDenomOptions,
+            boardAlignment,
+            fpvCamAngleDegrees,
+            craftName,
+            pilotName,
+            showPilotName,
+            featuresList,
+            beepersList,
+            dshotBeaconConditionsList,
+            dshotBeaconTone,
+            beeperDisabledMask,
+            dshotDisabledMask,
+            featureMask,
+            isFeatureEnabled,
+            toggleFeature,
+            isBeeperEnabled,
+            toggleBeeper,
+            enableAllBeepers,
+            disableAllBeepers,
+            isDshotConditionEnabled,
+            toggleDshotCondition,
+            armingConfig,
+            accelTrims,
+            sensorAlignment,
+            magDeclination,
+            showGyroCalOnFirstArm,
+            showAutoDisarmDelay,
+            hasSecondGyro,
+            hasDualGyros,
+            showGyro1Align,
+            showGyro2Align,
+            showMagAlign,
+            showSensorAlignment,
+            showOtherSensors,
+            showMagDeclination,
+            showRangefinder,
+            showOpticalFlow,
+            sonarTypesList,
+            showGyroToUse,
+            opticalFlowTypesList,
+            sensorAlignments,
+            showMultiGyro,
+            gyroList,
+            toggleGyro,
+            updateGyroAlign,
+            saveConfig,
+        };
+    },
+});
+</script>
+
+<style lang="less" scoped>
+@import "../../css/tabs/configuration.less";
+</style>
+```
